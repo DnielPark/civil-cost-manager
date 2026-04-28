@@ -21,39 +21,18 @@ def init_database():
     cursor = conn.cursor()
 
     cursor.executescript('''
-        -- 공사 정보 테이블
+        -- 프로젝트 테이블 (기존 유지, 간소화)
         CREATE TABLE IF NOT EXISTS projects (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             location TEXT,
-            start_date TEXT,
-            end_date TEXT,
-            budget REAL DEFAULT 0,
-            description TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
-        -- 공종/항목 테이블
-        CREATE TABLE IF NOT EXISTS cost_items (
+        -- 일위대가 목록표
+        CREATE TABLE IF NOT EXISTS unit_cost_composite (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             project_id INTEGER NOT NULL,
-            parent_id INTEGER,
-            code TEXT,
-            name TEXT NOT NULL,
-            unit TEXT,
-            quantity REAL DEFAULT 0,
-            unit_price REAL DEFAULT 0,
-            total_price REAL DEFAULT 0,
-            note TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (project_id) REFERENCES projects(id),
-            FOREIGN KEY (parent_id) REFERENCES cost_items(id)
-        );
-
-        -- 단가명세서 테이블
-        CREATE TABLE IF NOT EXISTS unit_price_list (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
             work_name TEXT NOT NULL,
             spec TEXT NOT NULL,
             unit TEXT NOT NULL,
@@ -61,32 +40,98 @@ def init_database():
             material_cost REAL DEFAULT 0,
             labor_cost REAL DEFAULT 0,
             expense_cost REAL DEFAULT 0,
-            cost_basis TEXT,
             note TEXT,
-            UNIQUE(work_name, spec)
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(project_id) REFERENCES projects(id),
+            UNIQUE(project_id, work_name, spec)
+        );
+
+        -- 품셈단가 목록표
+        CREATE TABLE IF NOT EXISTS unit_cost_standard (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER NOT NULL,
+            work_name TEXT NOT NULL,
+            spec TEXT NOT NULL,
+            unit TEXT NOT NULL,
+            unit_quantity REAL DEFAULT 1.0,
+            material_cost REAL DEFAULT 0,
+            labor_cost REAL DEFAULT 0,
+            expense_cost REAL DEFAULT 0,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(project_id) REFERENCES projects(id),
+            UNIQUE(project_id, work_name, spec)
+        );
+
+        -- 표준시장단가 목록표
+        CREATE TABLE IF NOT EXISTS unit_cost_market (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER NOT NULL,
+            work_name TEXT NOT NULL,
+            spec TEXT NOT NULL,
+            unit TEXT NOT NULL,
+            unit_quantity REAL DEFAULT 1.0,
+            material_cost REAL DEFAULT 0,
+            labor_cost REAL DEFAULT 0,
+            expense_cost REAL DEFAULT 0,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(project_id) REFERENCES projects(id),
+            UNIQUE(project_id, work_name, spec)
+        );
+
+        -- 견적단가 목록표
+        CREATE TABLE IF NOT EXISTS unit_cost_quote (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER NOT NULL,
+            work_name TEXT NOT NULL,
+            spec TEXT NOT NULL,
+            unit TEXT NOT NULL,
+            unit_quantity REAL DEFAULT 1.0,
+            material_cost REAL DEFAULT 0,
+            labor_cost REAL DEFAULT 0,
+            expense_cost REAL DEFAULT 0,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(project_id) REFERENCES projects(id),
+            UNIQUE(project_id, work_name, spec)
         );
     ''')
 
-    # 샘플 단가 데이터 (중복 방지)
-    sample_prices = [
-        ('흙파기', '3.0m 이내', 'm³', 1.0, 0, 7200, 1300, '품셈단가', ''),
-        ('되메우기', '3.0m 이내', 'm³', 1.0, 0, 5100, 1100, '품셈단가', ''),
-        ('콘크리트타설', '25-210-12', 'm³', 1.0, 125000, 48000, 12000, '일위대가', ''),
-        ('거푸집', '일반형', 'm²', 1.0, 18500, 8500, 1500, '품셈단가', ''),
-        ('철근가공조립', 'D13', 'ton', 1.0, 850000, 320000, 80000, '일위대가', ''),
-        ('터파기', '5.0m 이내', 'm³', 1.0, 2500, 8500, 1500, '품셈단가', ''),
-        ('모래포설', '10cm', 'm²', 1.0, 2800, 800, 200, '표준시장가', ''),
-        ('잡석다짐', '20cm', 'm²', 1.0, 6200, 1800, 500, '품셈단가', ''),
-        ('배수로', 'U형측구 300x300', 'm', 1.0, 32000, 10000, 3000, '견적', ''),
-        ('아스콘포장', '5cm', 'm²', 1.0, 9500, 2500, 500, '일위대가', ''),
-    ]
+    # 샘플 프로젝트
+    cursor.execute('INSERT OR IGNORE INTO projects (id, name, location) VALUES (1, ?, ?)',
+                   ('OO고속도로 1공구', '경기도'))
 
-    for item in sample_prices:
-        cursor.execute('''
-            INSERT OR IGNORE INTO unit_price_list
-            (work_name, spec, unit, unit_quantity, material_cost, labor_cost, expense_cost, cost_basis, note)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', item)
+    # 샘플 단가 데이터 (project_id=1 기준)
+    # (테이블명, 데이터 리스트)
+    samples = {
+        'unit_cost_composite': [
+            ('콘크리트타설', '25-210-12', 'm³', 1.0, 125000, 48000, 12000, ''),
+            ('철근가공조립', 'D13', 'ton', 1.0, 850000, 320000, 80000, ''),
+            ('거푸집', '일반형', 'm²', 1.0, 18500, 8500, 1500, ''),
+        ],
+        'unit_cost_standard': [
+            ('흙파기', '3.0m 이내', 'm³', 1.0, 0, 7200, 1300, ''),
+            ('되메우기', '3.0m 이내', 'm³', 1.0, 0, 5100, 1100, ''),
+            ('터파기', '5.0m 이내', 'm³', 1.0, 2500, 8500, 1500, ''),
+            ('잡석다짐', '20cm', 'm²', 1.0, 6200, 1800, 500, ''),
+        ],
+        'unit_cost_market': [
+            ('모래포설', '10cm', 'm²', 1.0, 2800, 800, 200, ''),
+            ('아스콘포장', '5cm', 'm²', 1.0, 9500, 2500, 500, ''),
+        ],
+        'unit_cost_quote': [
+            ('배수로', 'U형측구 300x300', 'm', 1.0, 32000, 10000, 3000, ''),
+        ],
+    }
+
+    for table, items in samples.items():
+        for item in items:
+            cursor.execute(f'''
+                INSERT OR IGNORE INTO {table}
+                (project_id, work_name, spec, unit, unit_quantity, material_cost, labor_cost, expense_cost, note)
+                VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', item)
 
     conn.commit()
     conn.close()

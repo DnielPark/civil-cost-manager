@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단가명세표 - Civil Cost Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .tab-nav { display: flex; gap: 0; margin-bottom: 1rem; }
+        .tab-btn {
+            padding: 10px 20px;
+            border: 1px solid #ddd;
+            background: #f8f8f8;
+            cursor: pointer;
+            font-size: 0.95rem;
+            flex: 1;
+            text-align: center;
+        }
+        .tab-btn:first-child { border-radius: 6px 0 0 6px; }
+        .tab-btn:last-child { border-radius: 0 6px 6px 0; }
+        .tab-btn.active { background: #4CAF50; color: white; border-color: #4CAF50; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        .price-table th, .price-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .price-table th {
+            background-color: #4CAF50;
+            color: white;
+            white-space: nowrap;
+        }
+        .price-table tr:nth-child(even) { background-color: #f2f2f2; }
+        .price-table tr:hover { background-color: #ddd; }
+        .text-right { text-align: right !important; }
+        .text-left { text-align: left !important; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .project-title { margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>💰 단가명세표</h1>
+    </header>
+    <div class="container">
+        <div class="project-title">
+            <h2>🏗️ {{ project.name }}</h2>
+            <a href="/" class="back-link">← 메인으로</a>
+        </div>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('composite', this)">일위대가</button>
+            <button class="tab-btn" onclick="switchTab('standard', this)">품셈단가</button>
+            <button class="tab-btn" onclick="switchTab('market', this)">표준시장단가</button>
+            <button class="tab-btn" onclick="switchTab('quote', this)">견적단가</button>
+        </div>
+
+        <div id="tab-composite" class="tab-content active">
+            <table class="price-table"><thead><tr><th>색인</th><th>공종명</th><th>규격</th><th>단위</th><th>단위수량</th><th>재료비</th><th>노무비</th><th>경비</th><th>합계</th><th>비고</th></tr></thead><tbody id="body-composite"><tr><td colspan="10">로딩 중...</td></tr></tbody></table>
+        </div>
+        <div id="tab-standard" class="tab-content">
+            <table class="price-table"><thead><tr><th>색인</th><th>공종명</th><th>규격</th><th>단위</th><th>단위수량</th><th>재료비</th><th>노무비</th><th>경비</th><th>합계</th><th>비고</th></tr></thead><tbody id="body-standard"><tr><td colspan="10">로딩 중...</td></tr></tbody></table>
+        </div>
+        <div id="tab-market" class="tab-content">
+            <table class="price-table"><thead><tr><th>색인</th><th>공종명</th><th>규격</th><th>단위</th><th>단위수량</th><th>재료비</th><th>노무비</th><th>경비</th><th>합계</th><th>비고</th></tr></thead><tbody id="body-market"><tr><td colspan="10">로딩 중...</td></tr></tbody></table>
+        </div>
+        <div id="tab-quote" class="tab-content">
+            <table class="price-table"><thead><tr><th>색인</th><th>공종명</th><th>규격</th><th>단위</th><th>단위수량</th><th>재료비</th><th>노무비</th><th>경비</th><th>합계</th><th>비고</th></tr></thead><tbody id="body-quote"><tr><td colspan="10">로딩 중...</td></tr></tbody></table>
+        </div>
+    </div>
+
+    <footer>
+        <p>Civil Cost Manager &copy; 2026</p>
+    </footer>
+
+    <script>
+        const PROJECT_ID = {{ project.id }};
+
+        function switchTab(type, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + type).classList.add('active');
+            loadTable(type);
+        }
+
+        async function loadTable(type) {
+            const tbody = document.getElementById('body-' + type);
+            try {
+                const res = await fetch(`/api/unit-prices/${PROJECT_ID}/${type}`);
+                const data = await res.json();
+
+                let html = '';
+                data.forEach((item, idx) => {
+                    const total = (item.material_cost || 0) + (item.labor_cost || 0) + (item.expense_cost || 0);
+                    html += `<tr>
+                        <td>${idx + 1}</td>
+                        <td class="text-left">${item.work_name}</td>
+                        <td class="text-left">${item.spec}</td>
+                        <td>${item.unit}</td>
+                        <td>${item.unit_quantity || 1}</td>
+                        <td class="text-right">${(item.material_cost || 0).toLocaleString()}</td>
+                        <td class="text-right">${(item.labor_cost || 0).toLocaleString()}</td>
+                        <td class="text-right">${(item.expense_cost || 0).toLocaleString()}</td>
+                        <td class="text-right"><strong>${total.toLocaleString()}</strong></td>
+                        <td class="text-left">${item.note || ''}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html || `<tr><td colspan="10">데이터가 없습니다.</td></tr>`;
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="10">로딩 실패</td></tr>`;
+            }
+        }
+
+        // 첫 번째 탭 자동 로드
+        document.addEventListener('DOMContentLoaded', () => loadTable('composite'));
+    </script>
+</body>
+</html>

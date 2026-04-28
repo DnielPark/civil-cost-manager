@@ -7,6 +7,14 @@ from database.init_db import get_connection
 
 api_bp = Blueprint('api', __name__)
 
+# 단가 유형별 테이블 매핑
+UNIT_TABLES = {
+    'composite': 'unit_cost_composite',
+    'standard': 'unit_cost_standard',
+    'market': 'unit_cost_market',
+    'quote': 'unit_cost_quote',
+}
+
 
 @api_bp.route('/projects', methods=['GET'])
 def list_projects():
@@ -25,62 +33,24 @@ def create_project():
     data = request.get_json()
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO projects (name, location, start_date, end_date, budget, description)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (data['name'], data.get('location'), data.get('start_date'),
-          data.get('end_date'), data.get('budget', 0), data.get('description')))
+    cursor.execute('INSERT INTO projects (name, location) VALUES (?, ?)',
+                   (data['name'], data.get('location')))
     conn.commit()
     project_id = cursor.lastrowid
     conn.close()
     return jsonify({'id': project_id, 'message': '생성 완료'}), 201
 
 
-@api_bp.route('/projects/<int:project_id>', methods=['GET'])
-def get_project(project_id):
-    """프로젝트 상세 API"""
+@api_bp.route('/unit-prices/<int:project_id>/<table_type>', methods=['GET'])
+def get_unit_prices(project_id, table_type):
+    """단가명세표 조회 API"""
+    if table_type not in UNIT_TABLES:
+        return jsonify({'error': 'Invalid table type'}), 400
+
+    table = UNIT_TABLES[table_type]
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM projects WHERE id = ?', (project_id,))
-    project = cursor.fetchone()
-    if not project:
-        conn.close()
-        return jsonify({'error': 'Not found'}), 404
-
-    cursor.execute('SELECT * FROM cost_items WHERE project_id = ? ORDER BY code', (project_id,))
-    items = [dict(row) for row in cursor.fetchall()]
-    conn.close()
-
-    result = dict(project)
-    result['items'] = items
-    return jsonify(result)
-
-
-@api_bp.route('/cost-items', methods=['POST'])
-def add_cost_item():
-    """공사 항목 추가 API"""
-    data = request.get_json()
-    conn = get_connection()
-    cursor = conn.cursor()
-    total = (data.get('quantity', 0) or 0) * (data.get('unit_price', 0) or 0)
-    cursor.execute('''
-        INSERT INTO cost_items (project_id, parent_id, code, name, unit, quantity, unit_price, total_price, note)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (data['project_id'], data.get('parent_id'), data.get('code'),
-          data['name'], data.get('unit'), data.get('quantity', 0),
-          data.get('unit_price', 0), total, data.get('note')))
-    conn.commit()
-    item_id = cursor.lastrowid
-    conn.close()
-    return jsonify({'id': item_id, 'total_price': total, 'message': '추가 완료'}), 201
-
-
-@api_bp.route('/unit-prices', methods=['GET'])
-def get_unit_prices():
-    """단가명세서 조회 API"""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM unit_price_list ORDER BY id')
+    cursor.execute(f'SELECT * FROM {table} WHERE project_id = ? ORDER BY id', (project_id,))
     rows = cursor.fetchall()
     conn.close()
 
@@ -95,8 +65,23 @@ def get_unit_prices():
             'material_cost': row['material_cost'],
             'labor_cost': row['labor_cost'],
             'expense_cost': row['expense_cost'],
-            'cost_basis': row['cost_basis'],
-            'note': row['note']
+            'note': row['note'],
         })
 
     return jsonify(prices)
+
+
+@api_bp.route('/unit-prices/<int:project_id>', methods=['GET'])
+def get_all_unit_prices(project_id):
+    """프로젝트의 모든 단가 데이터 조회"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    result = {}
+
+    for key, table in UNIT_TABLES.items():
+        cursor.execute(f'SELECT * FROM {table} WHERE project_id = ? ORDER BY id', (project_id,))
+        rows = cursor.fetchall()
+        result[key] = [dict(row) for row in rows]
+
+    conn.close()
+    return jsonify(result)

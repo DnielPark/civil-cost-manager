@@ -12,15 +12,22 @@
     </header>
 
     <main>
-        <h2 class="page-title">메인 메뉴</h2>
+        <div class="project-selector">
+            <label for="projectSelect">프로젝트 선택:</label>
+            <select id="projectSelect" onchange="onProjectChange()">
+                <option value="">-- 프로젝트를 선택하세요 --</option>
+            </select>
+            <button onclick="createProject()" class="btn-small">+ 새 프로젝트</button>
+        </div>
+
         <div class="menu-grid">
             <a href="/projects" class="menu-card">
                 <span class="menu-icon">📊</span>
                 <span class="menu-label">프로젝트 관리</span>
             </a>
-            <a href="/unit-prices" class="menu-card">
+            <a id="unitPriceLink" href="#" class="menu-card disabled" onclick="return false;">
                 <span class="menu-icon">💰</span>
-                <span class="menu-label">단가 마스터 관리</span>
+                <span class="menu-label">단가명세표</span>
             </a>
             <a href="/cost-items" class="menu-card">
                 <span class="menu-icon">📈</span>
@@ -36,5 +43,64 @@
     <footer>
         <p>Civil Cost Manager &copy; 2026</p>
     </footer>
+
+    <script>
+        // 프로젝트 목록 로드
+        async function loadProjects() {
+            const select = document.getElementById('projectSelect');
+            try {
+                const res = await fetch('/api/projects');
+                const projects = await res.json();
+                projects.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.name;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('프로젝트 로드 실패:', err);
+            }
+        }
+
+        function onProjectChange() {
+            const select = document.getElementById('projectSelect');
+            const link = document.getElementById('unitPriceLink');
+            const projectId = select.value;
+
+            if (projectId) {
+                link.href = `/unit-prices/${projectId}`;
+                link.classList.remove('disabled');
+                link.onclick = null;
+            } else {
+                link.href = '#';
+                link.classList.add('disabled');
+                link.onclick = function() { return false; };
+            }
+        }
+
+        async function createProject() {
+            const name = prompt('새 프로젝트 이름을 입력하세요:');
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name: name})
+                });
+                const data = await res.json();
+                const opt = document.createElement('option');
+                opt.value = data.id;
+                opt.textContent = name;
+                document.getElementById('projectSelect').appendChild(opt);
+                document.getElementById('projectSelect').value = data.id;
+                onProjectChange();
+            } catch (err) {
+                alert('프로젝트 생성 실패');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProjects);
+    </script>
 </body>
 </html>
