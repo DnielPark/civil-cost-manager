@@ -73,3 +73,14 @@ def add_cost_item():
     item_id = cursor.lastrowid
     conn.close()
     return jsonify({'id': item_id, 'total_price': total, 'message': '추가 완료'}), 201
+
+
+@api_bp.route('/unit-prices', methods=['GET'])
+def list_unit_prices():
+    """단가명세서 목록 API"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM unit_price_list ORDER BY id')
+    prices = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(prices)

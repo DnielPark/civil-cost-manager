@@ -23,3 +23,9 @@ def projects():
 def project_detail(project_id):
     """프로젝트 상세 페이지"""
     return render_template('project_detail.html', project_id=project_id)
+
+
+@main_bp.route('/unit-prices')
+def unit_prices():
+    """단가명세서 페이지"""
+    return render_template('unit_prices.html')
