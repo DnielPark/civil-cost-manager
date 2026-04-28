@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>프로젝트 상세 - Civil Cost Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>🏗️ Civil Cost Manager</h1>
+        <nav>
+            <a href="/">홈</a>
+            <a href="/projects">프로젝트</a>
+        </nav>
+    </header>
+
+    <main>
+        <h2 id="project-name">로딩 중...</h2>
+        <div id="project-info"></div>
+        <h3>공사 항목</h3>
+        <div id="cost-items">
+            <p>로딩 중...</p>
+        </div>
+    </main>
+
+    <footer>
+        <p>Civil Cost Manager &copy; 2026</p>
+    </footer>
+
+    <script>
+        const PROJECT_ID = {{ project_id }};
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
