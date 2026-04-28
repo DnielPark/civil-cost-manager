@@ -15,6 +15,7 @@ UNIT_TABLES = {
     'market': 'unit_cost_market',
     'quote': 'unit_cost_quote',
     'price_info': 'unit_cost_price_info',
+    'field_report': 'unit_cost_field_report',
 }
 
 

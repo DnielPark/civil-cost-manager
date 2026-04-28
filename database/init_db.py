@@ -135,6 +135,23 @@ def init_database():
             FOREIGN KEY(project_id) REFERENCES projects(id),
             UNIQUE(project_id, work_name, spec)
         );
+
+        -- 실정보고 단가 목록표
+        CREATE TABLE IF NOT EXISTS unit_cost_field_report (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id INTEGER NOT NULL,
+            work_name TEXT NOT NULL,
+            spec TEXT NOT NULL,
+            unit TEXT NOT NULL,
+            unit_quantity REAL DEFAULT 1.0,
+            material_cost REAL DEFAULT 0,
+            labor_cost REAL DEFAULT 0,
+            expense_cost REAL DEFAULT 0,
+            note TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(project_id) REFERENCES projects(id),
+            UNIQUE(project_id, work_name, spec)
+        );
     ''')
 
     # 샘플 프로젝트
@@ -172,6 +189,11 @@ def init_database():
         'unit_cost_price_info': [
             ('시멘트', '보통포틀랜드 40kg', '포', 1.0, 4500, 0, 0, '한국물가정보', '2026-03', ''),
             ('레미콘', '25-210-12', 'm³', 1.0, 105000, 0, 0, '한국물가정보', '2026-03', ''),
+        ],
+        'unit_cost_field_report': [
+            ('현장제작 거푸집', '특수형상', 'm²', 1.0, 25000, 15000, 2000, '현장 실정보고'),
+            ('특수 철근 가공', 'D25 곡가공', 'ton', 1.0, 900000, 400000, 100000, '1차 변경'),
+            ('임시 배수시설', '가배수로', 'm', 1.0, 5000, 8000, 1000, '우기 대책'),
         ],
     }
 

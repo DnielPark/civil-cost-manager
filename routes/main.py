@@ -15,6 +15,7 @@ UNIT_TYPES = {
     'market': {'title': '표준시장단가 목록표', 'table': 'unit_cost_market'},
     'quote': {'title': '견적단가 목록표', 'table': 'unit_cost_quote'},
     'price_info': {'title': '물가정보지 목록표', 'table': 'unit_cost_price_info'},
+    'field_report': {'title': '실정보고 단가 목록표', 'table': 'unit_cost_field_report'},
 }
 
 

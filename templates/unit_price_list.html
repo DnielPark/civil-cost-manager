@@ -179,6 +179,18 @@
                 { key: 'issue_date', label: '발행일', render: v => v || '' },
                 { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
             ],
+            'field_report': [
+                { key: 'idx', label: '색인', render: (v, i) => i + 1 },
+                { key: 'work_name', label: '공종명', render: v => v, class: 'text-left' },
+                { key: 'spec', label: '규격', render: v => v, class: 'text-left' },
+                { key: 'unit', label: '단위', render: v => v },
+                { key: 'unit_quantity', label: '단위수량', render: v => v },
+                { key: 'material_cost', label: '재료비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'labor_cost', label: '노무비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'expense_cost', label: '경비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'total', label: '합계', render: (v, i, item) => `<strong>${((item.material_cost||0)+(item.labor_cost||0)+(item.expense_cost||0)).toLocaleString()}</strong>`, class: 'text-right' },
+                { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
+            ],
         };
 
         function buildHeader() {
