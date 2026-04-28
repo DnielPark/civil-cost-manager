@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Civil Cost Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        .price-table th, .price-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+        .price-table th {
+            background-color: #4CAF50;
+            color: white;
+            white-space: nowrap;
+        }
+        .price-table tr:nth-child(even) { background-color: #f2f2f2; }
+        .price-table tr:hover { background-color: #ddd; }
+        .text-right { text-align: right !important; }
+        .text-left { text-align: left !important; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .page-header h2 { font-size: 1.3rem; color: #2c3e50; }
+        .back-link { color: #3498db; text-decoration: none; }
+        .back-link:hover { text-decoration: underline; }
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .toolbar input[type="text"] {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .toolbar button {
+            padding: 0.4rem 1rem;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .toolbar button:hover { background: #2980b9; }
+        .toolbar .btn-green { background: #4CAF50; }
+        .toolbar .btn-green:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>{{ title }}</h1>
+    </header>
+    <div class="container">
+        <div class="page-header">
+            <h2>🏗️ {{ project.name }}</h2>
+            <a href="/unit-prices/{{ project.id }}" class="back-link">← 단가명세표로</a>
+        </div>
+
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="검색 (공종명 또는 규격)" onkeyup="filterTable()">
+            <button onclick="filterTable()">🔍 검색</button>
+            <button class="btn-green" onclick="alert('엑셀 업로드 기능은 다음 단계에서 구현 예정')">📤 엑셀 업로드</button>
+            <button class="btn-green" onclick="alert('엑셀 다운로드 기능은 다음 단계에서 구현 예정')">📥 엑셀 다운로드</button>
+        </div>
+
+        <table class="price-table" id="priceTable">
+            <thead>
+                <tr>
+                    <th>색인</th>
+                    <th>공종명</th>
+                    <th>규격</th>
+                    <th>단위</th>
+                    <th>단위수량</th>
+                    <th>재료비</th>
+                    <th>노무비</th>
+                    <th>경비</th>
+                    <th>합계</th>
+                    <th>비고</th>
+                </tr>
+            </thead>
+            <tbody id="priceBody">
+                <tr><td colspan="10">로딩 중...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <footer>
+        <p>Civil Cost Manager &copy; 2026</p>
+    </footer>
+
+    <script>
+        const PROJECT_ID = {{ project.id }};
+        const COST_TYPE = '{{ cost_type }}';
+        let priceData = [];
+
+        async function loadData() {
+            const tbody = document.getElementById('priceBody');
+            try {
+                const res = await fetch(`/api/unit-prices/${PROJECT_ID}/${COST_TYPE}`);
+                priceData = await res.json();
+
+                let html = '';
+                priceData.forEach((item, idx) => {
+                    const total = (item.material_cost || 0) + (item.labor_cost || 0) + (item.expense_cost || 0);
+                    html += `<tr>
+                        <td>${idx + 1}</td>
+                        <td class="text-left">${item.work_name}</td>
+                        <td class="text-left">${item.spec}</td>
+                        <td>${item.unit}</td>
+                        <td>${item.unit_quantity || 1}</td>
+                        <td class="text-right">${(item.material_cost || 0).toLocaleString()}</td>
+                        <td class="text-right">${(item.labor_cost || 0).toLocaleString()}</td>
+                        <td class="text-right">${(item.expense_cost || 0).toLocaleString()}</td>
+                        <td class="text-right"><strong>${total.toLocaleString()}</strong></td>
+                        <td class="text-left">${item.note || ''}</td>
+                    </tr>`;
+                });
+                tbody.innerHTML = html || '<tr><td colspan="10">데이터가 없습니다.</td></tr>';
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="10">로딩 실패</td></tr>';
+            }
+        }
+
+        function filterTable() {
+            const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+            const tbody = document.getElementById('priceBody');
+
+            if (!keyword) {
+                loadData();
+                return;
+            }
+
+            const filtered = priceData.filter(item =>
+                item.work_name.toLowerCase().includes(keyword) ||
+                item.spec.toLowerCase().includes(keyword)
+            );
+
+            let html = '';
+            filtered.forEach((item, idx) => {
+                const total = (item.material_cost || 0) + (item.labor_cost || 0) + (item.expense_cost || 0);
+                html += `<tr>
+                    <td>${idx + 1}</td>
+                    <td class="text-left">${item.work_name}</td>
+                    <td class="text-left">${item.spec}</td>
+                    <td>${item.unit}</td>
+                    <td>${item.unit_quantity || 1}</td>
+                    <td class="text-right">${(item.material_cost || 0).toLocaleString()}</td>
+                    <td class="text-right">${(item.labor_cost || 0).toLocaleString()}</td>
+                    <td class="text-right">${(item.expense_cost || 0).toLocaleString()}</td>
+                    <td class="text-right"><strong>${total.toLocaleString()}</strong></td>
+                    <td class="text-left">${item.note || ''}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html || '<tr><td colspan="10">검색 결과가 없습니다.</td></tr>';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
