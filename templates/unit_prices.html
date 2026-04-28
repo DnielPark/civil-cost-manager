@@ -60,15 +60,17 @@
                     <th>공종명</th>
                     <th>규격</th>
                     <th>단위</th>
-                    <th>합계</th>
+                    <th>단위수량</th>
                     <th>재료비</th>
                     <th>노무비</th>
                     <th>경비</th>
+                    <th>합계</th>
+                    <th>산출근거</th>
                     <th>비고</th>
                 </tr>
             </thead>
             <tbody id="priceBody">
-                <tr><td colspan="9">로딩 중...</td></tr>
+                <tr><td colspan="11">로딩 중...</td></tr>
             </tbody>
         </table>
     </div>
@@ -86,19 +88,22 @@
 
                 let html = '';
                 data.forEach(item => {
+                    const total = (item.material_cost || 0) + (item.labor_cost || 0) + (item.expense_cost || 0);
                     html += `<tr>
                         <td>${item.id}</td>
                         <td class="text-left">${item.work_name}</td>
                         <td class="text-left">${item.spec}</td>
                         <td>${item.unit}</td>
-                        <td class="text-right">${(item.total_price || 0).toLocaleString()}</td>
+                        <td class="text-right">${(item.unit_quantity || 1)}</td>
                         <td class="text-right">${(item.material_cost || 0).toLocaleString()}</td>
                         <td class="text-right">${(item.labor_cost || 0).toLocaleString()}</td>
                         <td class="text-right">${(item.expense_cost || 0).toLocaleString()}</td>
+                        <td class="text-right">${total.toLocaleString()}</td>
+                        <td>${item.cost_basis || ''}</td>
                         <td class="text-left">${item.note || ''}</td>
                     </tr>`;
                 });
-                tbody.innerHTML = html || '<tr><td colspan="9">등록된 단가가 없습니다.</td></tr>';
+                tbody.innerHTML = html || '<tr><td colspan="11">등록된 단가가 없습니다.</td></tr>';
             } catch (err) {
                 tbody.innerHTML = '<tr><td colspan="9">데이터를 불러오는 중 오류가 발생했습니다.</td></tr>';
             }

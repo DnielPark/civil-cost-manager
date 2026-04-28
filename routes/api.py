@@ -76,11 +76,27 @@ def add_cost_item():
 
 
 @api_bp.route('/unit-prices', methods=['GET'])
-def list_unit_prices():
-    """단가명세서 목록 API"""
+def get_unit_prices():
+    """단가명세서 조회 API"""
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM unit_price_list ORDER BY id')
-    prices = [dict(row) for row in cursor.fetchall()]
+    rows = cursor.fetchall()
     conn.close()
+
+    prices = []
+    for row in rows:
+        prices.append({
+            'id': row['id'],
+            'work_name': row['work_name'],
+            'spec': row['spec'],
+            'unit': row['unit'],
+            'unit_quantity': row['unit_quantity'],
+            'material_cost': row['material_cost'],
+            'labor_cost': row['labor_cost'],
+            'expense_cost': row['expense_cost'],
+            'cost_basis': row['cost_basis'],
+            'note': row['note']
+        })
+
     return jsonify(prices)

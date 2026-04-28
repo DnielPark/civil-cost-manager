@@ -57,10 +57,11 @@ def init_database():
             work_name TEXT NOT NULL,
             spec TEXT NOT NULL,
             unit TEXT NOT NULL,
-            total_price REAL NOT NULL,
+            unit_quantity REAL DEFAULT 1.0,
             material_cost REAL DEFAULT 0,
             labor_cost REAL DEFAULT 0,
             expense_cost REAL DEFAULT 0,
+            cost_basis TEXT,
             note TEXT,
             UNIQUE(work_name, spec)
         );
@@ -68,23 +69,23 @@ def init_database():
 
     # 샘플 단가 데이터 (중복 방지)
     sample_prices = [
-        ('흙파기', '3.0m 이내', 'm³', 8500, 0, 7200, 1300, '인력굴착'),
-        ('되메우기', '3.0m 이내', 'm³', 6200, 0, 5100, 1100, '다짐포함'),
-        ('콘크리트타설', '25-210-12', 'm³', 185000, 125000, 48000, 12000, '레미콘 포함'),
-        ('거푸집', '일반형', 'm²', 28500, 18500, 8500, 1500, '합판 3회 전용'),
-        ('철근가공조립', 'D13', 'ton', 1250000, 850000, 320000, 80000, 'SD400'),
-        ('터파기', '5.0m 이내', 'm³', 12500, 2500, 8500, 1500, '기계굴착'),
-        ('모래포설', '10cm', 'm²', 3800, 2800, 800, 200, '강모래'),
-        ('잡석다짐', '20cm', 'm²', 8500, 6200, 1800, 500, 'CR-40'),
-        ('배수로', 'U형측구 300x300', 'm', 45000, 32000, 10000, 3000, '기성품'),
-        ('아스콘포장', '5cm', 'm²', 12500, 9500, 2500, 500, '밀입도'),
+        ('흙파기', '3.0m 이내', 'm³', 1.0, 0, 7200, 1300, '품셈단가', ''),
+        ('되메우기', '3.0m 이내', 'm³', 1.0, 0, 5100, 1100, '품셈단가', ''),
+        ('콘크리트타설', '25-210-12', 'm³', 1.0, 125000, 48000, 12000, '일위대가', ''),
+        ('거푸집', '일반형', 'm²', 1.0, 18500, 8500, 1500, '품셈단가', ''),
+        ('철근가공조립', 'D13', 'ton', 1.0, 850000, 320000, 80000, '일위대가', ''),
+        ('터파기', '5.0m 이내', 'm³', 1.0, 2500, 8500, 1500, '품셈단가', ''),
+        ('모래포설', '10cm', 'm²', 1.0, 2800, 800, 200, '표준시장가', ''),
+        ('잡석다짐', '20cm', 'm²', 1.0, 6200, 1800, 500, '품셈단가', ''),
+        ('배수로', 'U형측구 300x300', 'm', 1.0, 32000, 10000, 3000, '견적', ''),
+        ('아스콘포장', '5cm', 'm²', 1.0, 9500, 2500, 500, '일위대가', ''),
     ]
 
     for item in sample_prices:
         cursor.execute('''
             INSERT OR IGNORE INTO unit_price_list
-            (work_name, spec, unit, total_price, material_cost, labor_cost, expense_cost, note)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (work_name, spec, unit, unit_quantity, material_cost, labor_cost, expense_cost, cost_basis, note)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', item)
 
     conn.commit()
