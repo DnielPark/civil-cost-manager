@@ -15,19 +15,27 @@
         .project-header h2 { font-size: 1.4rem; color: #2c3e50; }
         .back-link { color: #3498db; text-decoration: none; }
         .back-link:hover { text-decoration: underline; }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #555;
+            margin: 1.5rem 0 0.8rem 0;
+            padding-bottom: 0.3rem;
+            border-bottom: 2px solid #4CAF50;
+        }
         .card-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 1.5rem;
-            justify-content: center;
+            gap: 1.2rem;
+            margin-bottom: 1rem;
         }
         .cost-card {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            width: 220px;
-            height: 160px;
+            width: 180px;
+            height: 140px;
             background: white;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -39,11 +47,16 @@
             transform: scale(1.05);
             box-shadow: 0 4px 16px rgba(0,0,0,0.15);
         }
-        .cost-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-        .cost-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .cost-card.highlight {
+            background: #e8f5e9;
+            border: 2px solid #4CAF50;
+        }
+        .cost-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+        .cost-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; text-align: center; }
         .cost-count { font-size: 0.85rem; color: #888; }
+        .cost-card.highlight .cost-count { color: #2e7d32; font-weight: 600; }
         .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-        .card-grid { margin-top: 1rem; }
+        .desc { font-size: 0.85rem; color: #999; text-align: center; margin-bottom: 1rem; }
     </style>
 </head>
 <body>
@@ -56,28 +69,46 @@
             <a href="/" class="back-link">← 메인으로</a>
         </div>
 
-        <p style="text-align:center; color:#666; margin-bottom:1.5rem;">조회할 단가 목록을 선택하세요.</p>
+        <p class="desc">조회할 단가 목록을 선택하세요.</p>
 
+        <!-- 최상위: 내역단가 -->
+        <div class="section-title">📊 내역단가 목록표 (최종 설계)</div>
+        <p class="desc" style="text-align:left; margin:-0.5rem 0 1rem 0;">실제 공사에 사용할 최종 단가 목록입니다.</p>
+        <div class="card-grid">
+            <a href="/unit-prices/{{ project.id }}/final" class="cost-card highlight">
+                <span class="cost-icon">📊</span>
+                <span class="cost-title">내역단가<br>목록표</span>
+                <span class="cost-count">{{ counts.final }}건</span>
+            </a>
+        </div>
+
+        <!-- 기초 단가 -->
+        <div class="section-title">📂 기초 단가 목록표 (참조용)</div>
         <div class="card-grid">
             <a href="/unit-prices/{{ project.id }}/composite" class="cost-card">
                 <span class="cost-icon">📋</span>
-                <span class="cost-title">일위대가 목록표</span>
-                <span class="cost-count">({{ counts.composite }}건)</span>
+                <span class="cost-title">일위대가<br>목록표</span>
+                <span class="cost-count">{{ counts.composite }}건</span>
             </a>
             <a href="/unit-prices/{{ project.id }}/standard" class="cost-card">
                 <span class="cost-icon">📐</span>
-                <span class="cost-title">품셈단가 목록표</span>
-                <span class="cost-count">({{ counts.standard }}건)</span>
+                <span class="cost-title">품셈단가<br>목록표</span>
+                <span class="cost-count">{{ counts.standard }}건</span>
             </a>
             <a href="/unit-prices/{{ project.id }}/market" class="cost-card">
                 <span class="cost-icon">🏪</span>
-                <span class="cost-title">표준시장단가 목록표</span>
-                <span class="cost-count">({{ counts.market }}건)</span>
+                <span class="cost-title">표준시장단가<br>목록표</span>
+                <span class="cost-count">{{ counts.market }}건</span>
             </a>
             <a href="/unit-prices/{{ project.id }}/quote" class="cost-card">
                 <span class="cost-icon">📄</span>
-                <span class="cost-title">견적단가 목록표</span>
-                <span class="cost-count">({{ counts.quote }}건)</span>
+                <span class="cost-title">견적단가<br>목록표</span>
+                <span class="cost-count">{{ counts.quote }}건</span>
+            </a>
+            <a href="/unit-prices/{{ project.id }}/price_info" class="cost-card">
+                <span class="cost-icon">💰</span>
+                <span class="cost-title">물가정보지<br>목록표</span>
+                <span class="cost-count">{{ counts.price_info }}건</span>
             </a>
         </div>
     </div>

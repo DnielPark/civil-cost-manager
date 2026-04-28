@@ -9,10 +9,12 @@ main_bp = Blueprint('main', __name__)
 
 # 단가 유형별 정보
 UNIT_TYPES = {
+    'final': {'title': '내역단가 목록표', 'table': 'unit_cost_final'},
     'composite': {'title': '일위대가 목록표', 'table': 'unit_cost_composite'},
     'standard': {'title': '품셈단가 목록표', 'table': 'unit_cost_standard'},
     'market': {'title': '표준시장단가 목록표', 'table': 'unit_cost_market'},
     'quote': {'title': '견적단가 목록표', 'table': 'unit_cost_quote'},
+    'price_info': {'title': '물가정보지 목록표', 'table': 'unit_cost_price_info'},
 }
 
 
@@ -47,7 +49,7 @@ def index():
 
 @main_bp.route('/unit-prices/<int:project_id>')
 def unit_prices_dashboard(project_id):
-    """단가명세표 대시보드 - 4개 카테고리 선택"""
+    """단가명세표 대시보드"""
     project = get_project(project_id)
     if not project:
         return render_template('error.html', message='프로젝트를 찾을 수 없습니다.'), 404
@@ -58,7 +60,7 @@ def unit_prices_dashboard(project_id):
 
 @main_bp.route('/unit-prices/<int:project_id>/<cost_type>')
 def unit_price_list(project_id, cost_type):
-    """개별 단가 목록표 (공통 템플릿)"""
+    """개별 단가 목록표"""
     if cost_type not in UNIT_TYPES:
         return render_template('error.html', message='잘못된 단가 유형입니다.'), 404
 

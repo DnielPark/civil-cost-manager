@@ -82,17 +82,8 @@
 
         <table class="price-table" id="priceTable">
             <thead>
-                <tr>
-                    <th>색인</th>
-                    <th>공종명</th>
-                    <th>규격</th>
-                    <th>단위</th>
-                    <th>단위수량</th>
-                    <th>재료비</th>
-                    <th>노무비</th>
-                    <th>경비</th>
-                    <th>합계</th>
-                    <th>비고</th>
+                <tr id="tableHeader">
+                    <!-- JS에서 동적 생성 -->
                 </tr>
             </thead>
             <tbody id="priceBody">
@@ -110,31 +101,116 @@
         const COST_TYPE = '{{ cost_type }}';
         let priceData = [];
 
+        // 칼럼 정의 (테이블 유형별)
+        const COLUMNS = {
+            'final': [
+                { key: 'idx', label: '색인', render: (v, i) => i + 1 },
+                { key: 'work_name', label: '공종명', render: v => v, class: 'text-left' },
+                { key: 'spec', label: '규격', render: v => v, class: 'text-left' },
+                { key: 'unit', label: '단위', render: v => v },
+                { key: 'unit_quantity', label: '단위수량', render: v => v },
+                { key: 'material_cost', label: '재료비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'labor_cost', label: '노무비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'expense_cost', label: '경비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'total', label: '합계', render: (v, i, item) => `<strong>${((item.material_cost||0)+(item.labor_cost||0)+(item.expense_cost||0)).toLocaleString()}</strong>`, class: 'text-right' },
+                { key: 'cost_source', label: '출처', render: v => v || '' },
+                { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
+            ],
+            'composite': [
+                { key: 'idx', label: '색인', render: (v, i) => i + 1 },
+                { key: 'work_name', label: '공종명', render: v => v, class: 'text-left' },
+                { key: 'spec', label: '규격', render: v => v, class: 'text-left' },
+                { key: 'unit', label: '단위', render: v => v },
+                { key: 'unit_quantity', label: '단위수량', render: v => v },
+                { key: 'material_cost', label: '재료비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'labor_cost', label: '노무비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'expense_cost', label: '경비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'total', label: '합계', render: (v, i, item) => `<strong>${((item.material_cost||0)+(item.labor_cost||0)+(item.expense_cost||0)).toLocaleString()}</strong>`, class: 'text-right' },
+                { key: 'composition_detail', label: '구성내역', render: v => v || '', class: 'text-left' },
+                { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
+            ],
+            'standard': [
+                { key: 'idx', label: '색인', render: (v, i) => i + 1 },
+                { key: 'work_name', label: '공종명', render: v => v, class: 'text-left' },
+                { key: 'spec', label: '규격', render: v => v, class: 'text-left' },
+                { key: 'unit', label: '단위', render: v => v },
+                { key: 'unit_quantity', label: '단위수량', render: v => v },
+                { key: 'material_cost', label: '재료비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'labor_cost', label: '노무비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'expense_cost', label: '경비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'total', label: '합계', render: (v, i, item) => `<strong>${((item.material_cost||0)+(item.labor_cost||0)+(item.expense_cost||0)).toLocaleString()}</strong>`, class: 'text-right' },
+                { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
+            ],
+            'market': [
+                { key: 'idx', label: '색인', render: (v, i) => i + 1 },
+                { key: 'work_name', label: '공종명', render: v => v, class: 'text-left' },
+                { key: 'spec', label: '규격', render: v => v, class: 'text-left' },
+                { key: 'unit', label: '단위', render: v => v },
+                { key: 'unit_quantity', label: '단위수량', render: v => v },
+                { key: 'material_cost', label: '재료비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'labor_cost', label: '노무비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'expense_cost', label: '경비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'total', label: '합계', render: (v, i, item) => `<strong>${((item.material_cost||0)+(item.labor_cost||0)+(item.expense_cost||0)).toLocaleString()}</strong>`, class: 'text-right' },
+                { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
+            ],
+            'quote': [
+                { key: 'idx', label: '색인', render: (v, i) => i + 1 },
+                { key: 'work_name', label: '공종명', render: v => v, class: 'text-left' },
+                { key: 'spec', label: '규격', render: v => v, class: 'text-left' },
+                { key: 'unit', label: '단위', render: v => v },
+                { key: 'unit_quantity', label: '단위수량', render: v => v },
+                { key: 'material_cost', label: '재료비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'labor_cost', label: '노무비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'expense_cost', label: '경비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'total', label: '합계', render: (v, i, item) => `<strong>${((item.material_cost||0)+(item.labor_cost||0)+(item.expense_cost||0)).toLocaleString()}</strong>`, class: 'text-right' },
+                { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
+            ],
+            'price_info': [
+                { key: 'idx', label: '색인', render: (v, i) => i + 1 },
+                { key: 'work_name', label: '품목명', render: v => v, class: 'text-left' },
+                { key: 'spec', label: '규격', render: v => v, class: 'text-left' },
+                { key: 'unit', label: '단위', render: v => v },
+                { key: 'unit_quantity', label: '단위수량', render: v => v },
+                { key: 'material_cost', label: '재료비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'labor_cost', label: '노무비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'expense_cost', label: '경비', render: v => (v || 0).toLocaleString(), class: 'text-right' },
+                { key: 'total', label: '합계', render: (v, i, item) => `<strong>${((item.material_cost||0)+(item.labor_cost||0)+(item.expense_cost||0)).toLocaleString()}</strong>`, class: 'text-right' },
+                { key: 'publisher', label: '발행처', render: v => v || '' },
+                { key: 'issue_date', label: '발행일', render: v => v || '' },
+                { key: 'note', label: '비고', render: v => v || '', class: 'text-left' },
+            ],
+        };
+
+        function buildHeader() {
+            const cols = COLUMNS[COST_TYPE];
+            if (!cols) return '';
+            return cols.map(c => `<th>${c.label}</th>`).join('');
+        }
+
+        function buildRows(data) {
+            const cols = COLUMNS[COST_TYPE];
+            if (!cols) return '';
+            return data.map((item, idx) => {
+                const cells = cols.map(c => {
+                    const val = c.key === 'idx' ? idx : item[c.key];
+                    const rendered = c.render ? c.render(val, idx, item) : (val ?? '');
+                    return `<td${c.class ? ' class="' + c.class + '"' : ''}>${rendered}</td>`;
+                }).join('');
+                return `<tr>${cells}</tr>`;
+            }).join('');
+        }
+
         async function loadData() {
             const tbody = document.getElementById('priceBody');
+            const thead = document.getElementById('tableHeader');
+            thead.innerHTML = buildHeader();
+
             try {
                 const res = await fetch(`/api/unit-prices/${PROJECT_ID}/${COST_TYPE}`);
                 priceData = await res.json();
-
-                let html = '';
-                priceData.forEach((item, idx) => {
-                    const total = (item.material_cost || 0) + (item.labor_cost || 0) + (item.expense_cost || 0);
-                    html += `<tr>
-                        <td>${idx + 1}</td>
-                        <td class="text-left">${item.work_name}</td>
-                        <td class="text-left">${item.spec}</td>
-                        <td>${item.unit}</td>
-                        <td>${item.unit_quantity || 1}</td>
-                        <td class="text-right">${(item.material_cost || 0).toLocaleString()}</td>
-                        <td class="text-right">${(item.labor_cost || 0).toLocaleString()}</td>
-                        <td class="text-right">${(item.expense_cost || 0).toLocaleString()}</td>
-                        <td class="text-right"><strong>${total.toLocaleString()}</strong></td>
-                        <td class="text-left">${item.note || ''}</td>
-                    </tr>`;
-                });
-                tbody.innerHTML = html || '<tr><td colspan="10">데이터가 없습니다.</td></tr>';
+                tbody.innerHTML = buildRows(priceData) || '<tr><td colspan="20">데이터가 없습니다.</td></tr>';
             } catch (err) {
-                tbody.innerHTML = '<tr><td colspan="10">로딩 실패</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="20">로딩 실패</td></tr>';
             }
         }
 
@@ -143,7 +219,7 @@
             const tbody = document.getElementById('priceBody');
 
             if (!keyword) {
-                loadData();
+                tbody.innerHTML = buildRows(priceData);
                 return;
             }
 
@@ -151,24 +227,7 @@
                 item.work_name.toLowerCase().includes(keyword) ||
                 item.spec.toLowerCase().includes(keyword)
             );
-
-            let html = '';
-            filtered.forEach((item, idx) => {
-                const total = (item.material_cost || 0) + (item.labor_cost || 0) + (item.expense_cost || 0);
-                html += `<tr>
-                    <td>${idx + 1}</td>
-                    <td class="text-left">${item.work_name}</td>
-                    <td class="text-left">${item.spec}</td>
-                    <td>${item.unit}</td>
-                    <td>${item.unit_quantity || 1}</td>
-                    <td class="text-right">${(item.material_cost || 0).toLocaleString()}</td>
-                    <td class="text-right">${(item.labor_cost || 0).toLocaleString()}</td>
-                    <td class="text-right">${(item.expense_cost || 0).toLocaleString()}</td>
-                    <td class="text-right"><strong>${total.toLocaleString()}</strong></td>
-                    <td class="text-left">${item.note || ''}</td>
-                </tr>`;
-            });
-            tbody.innerHTML = html || '<tr><td colspan="10">검색 결과가 없습니다.</td></tr>';
+            tbody.innerHTML = buildRows(filtered) || '<tr><td colspan="20">검색 결과가 없습니다.</td></tr>';
         }
 
         document.addEventListener('DOMContentLoaded', loadData);

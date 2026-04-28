@@ -9,10 +9,12 @@ api_bp = Blueprint('api', __name__)
 
 # 단가 유형별 테이블 매핑
 UNIT_TABLES = {
+    'final': 'unit_cost_final',
     'composite': 'unit_cost_composite',
     'standard': 'unit_cost_standard',
     'market': 'unit_cost_market',
     'quote': 'unit_cost_quote',
+    'price_info': 'unit_cost_price_info',
 }
 
 
@@ -56,7 +58,7 @@ def get_unit_prices(project_id, table_type):
 
     prices = []
     for row in rows:
-        prices.append({
+        item = {
             'id': row['id'],
             'work_name': row['work_name'],
             'spec': row['spec'],
@@ -66,7 +68,18 @@ def get_unit_prices(project_id, table_type):
             'labor_cost': row['labor_cost'],
             'expense_cost': row['expense_cost'],
             'note': row['note'],
-        })
+        }
+        # 테이블별 추가 필드
+        if table_type == 'final':
+            item['cost_source'] = row['cost_source']
+            item['source_id'] = row['source_id']
+        elif table_type == 'composite':
+            item['composition_detail'] = row['composition_detail']
+        elif table_type == 'price_info':
+            item['publisher'] = row['publisher']
+            item['issue_date'] = row['issue_date']
+
+        prices.append(item)
 
     return jsonify(prices)
 
