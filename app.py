@@ -3,11 +3,11 @@ Civil Cost Manager - Flask 메인 애플리케이션
 토목 공사비 관리 웹 애플리케이션
 """
 
-import os
 from flask import Flask, render_template
+from config import config
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
+app.config.from_object(config['development'])
 
 # 라우트 블루프린트 등록
 from routes.main import main_bp
@@ -29,4 +29,8 @@ if __name__ == '__main__':
     from database.init_db import init_database
     init_database()
 
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(
+        host=app.config['HOST'],
+        port=app.config['PORT'],
+        debug=app.config['DEBUG']
+    )
