@@ -4,6 +4,7 @@ API 라우트 - JSON 데이터 제공
 
 from flask import Blueprint, jsonify, request
 from database.init_db import get_connection
+import sqlite3
 
 api_bp = Blueprint('api', __name__)
 
@@ -18,8 +19,33 @@ UNIT_TABLES = {
     'field_report': 'unit_cost_field_report',
 }
 
+# 테이블별 추가 컬럼 (get_unit_prices에서 사용)
+TABLE_EXTRA_COLUMNS = {
+    'final': ['cost_source', 'source_id'],
+    'composite': ['composition_detail'],
+    'price_info': ['publisher', 'issue_date'],
+}
+
+BASE_COLUMNS = ['id', 'work_name', 'spec', 'unit', 'unit_quantity',
+                'material_cost', 'labor_cost', 'expense_cost', 'note']
+
+
+def safe_db(func):
+    """DB 에러 핸들링 데코레이터"""
+    from functools import wraps
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except sqlite3.Error as e:
+            return jsonify({'error': '데이터베이스 오류', 'detail': str(e)}), 500
+        except Exception as e:
+            return jsonify({'error': '서버 오류', 'detail': str(e)}), 500
+    return wrapper
+
 
 @api_bp.route('/projects', methods=['GET'])
+@safe_db
 def list_projects():
     """프로젝트 목록 API"""
     conn = get_connection()
@@ -31,9 +57,13 @@ def list_projects():
 
 
 @api_bp.route('/projects', methods=['POST'])
+@safe_db
 def create_project():
     """프로젝트 생성 API"""
     data = request.get_json()
+    if not data or 'name' not in data:
+        return jsonify({'error': '프로젝트 이름이 필요합니다.'}), 400
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('INSERT INTO projects (name, location) VALUES (?, ?)',
@@ -45,12 +75,16 @@ def create_project():
 
 
 @api_bp.route('/unit-prices/<int:project_id>/<table_type>', methods=['GET'])
+@safe_db
 def get_unit_prices(project_id, table_type):
     """단가명세표 조회 API"""
     if table_type not in UNIT_TABLES:
-        return jsonify({'error': 'Invalid table type'}), 400
+        return jsonify({'error': '잘못된 단가 유형입니다.'}), 400
 
     table = UNIT_TABLES[table_type]
+    extra_cols = TABLE_EXTRA_COLUMNS.get(table_type, [])
+    all_cols = BASE_COLUMNS + extra_cols
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(f'SELECT * FROM {table} WHERE project_id = ? ORDER BY id', (project_id,))
@@ -59,33 +93,19 @@ def get_unit_prices(project_id, table_type):
 
     prices = []
     for row in rows:
-        item = {
-            'id': row['id'],
-            'work_name': row['work_name'],
-            'spec': row['spec'],
-            'unit': row['unit'],
-            'unit_quantity': row['unit_quantity'],
-            'material_cost': row['material_cost'],
-            'labor_cost': row['labor_cost'],
-            'expense_cost': row['expense_cost'],
-            'note': row['note'],
-        }
-        # 테이블별 추가 필드
-        if table_type == 'final':
-            item['cost_source'] = row['cost_source']
-            item['source_id'] = row['source_id']
-        elif table_type == 'composite':
-            item['composition_detail'] = row['composition_detail']
-        elif table_type == 'price_info':
-            item['publisher'] = row['publisher']
-            item['issue_date'] = row['issue_date']
-
+        item = {}
+        for col in all_cols:
+            try:
+                item[col] = row[col]
+            except (KeyError, IndexError):
+                item[col] = None
         prices.append(item)
 
     return jsonify(prices)
 
 
 @api_bp.route('/unit-prices/<int:project_id>', methods=['GET'])
+@safe_db
 def get_all_unit_prices(project_id):
     """프로젝트의 모든 단가 데이터 조회"""
     conn = get_connection()
@@ -99,3 +119,63 @@ def get_all_unit_prices(project_id):
 
     conn.close()
     return jsonify(result)
+
+
+# --- 단가 추가 API (POST) ---
+
+@api_bp.route('/unit-prices/<int:project_id>/<table_type>', methods=['POST'])
+@safe_db
+def add_unit_price(project_id, table_type):
+    """단가 추가 API"""
+    if table_type not in UNIT_TABLES:
+        return jsonify({'error': '잘못된 단가 유형입니다.'}), 400
+
+    data = request.get_json()
+    if not data or 'work_name' not in data or 'spec' not in data:
+        return jsonify({'error': '공종명과 규격은 필수입니다.'}), 400
+
+    table = UNIT_TABLES[table_type]
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # 공통 필드
+    common_fields = {
+        'project_id': project_id,
+        'work_name': data['work_name'],
+        'spec': data['spec'],
+        'unit': data.get('unit', ''),
+        'unit_quantity': data.get('unit_quantity', 1.0),
+        'material_cost': data.get('material_cost', 0),
+        'labor_cost': data.get('labor_cost', 0),
+        'expense_cost': data.get('expense_cost', 0),
+        'note': data.get('note', ''),
+    }
+
+    # 테이블별 추가 필드
+    extra = {}
+    if table_type == 'final':
+        extra['cost_source'] = data.get('cost_source', '')
+        extra['source_id'] = data.get('source_id')
+    elif table_type == 'composite':
+        extra['composition_detail'] = data.get('composition_detail', '')
+    elif table_type == 'price_info':
+        extra['publisher'] = data.get('publisher', '')
+        extra['issue_date'] = data.get('issue_date', '')
+
+    all_fields = {**common_fields, **extra}
+    columns = ', '.join(all_fields.keys())
+    placeholders = ', '.join(['?' for _ in all_fields])
+    values = list(all_fields.values())
+
+    try:
+        cursor.execute(f'''
+            INSERT INTO {table} ({columns})
+            VALUES ({placeholders})
+        ''', values)
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        return jsonify({'id': new_id, 'message': '추가 완료'}), 201
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({'error': '동일한 공종명+규격이 이미 존재합니다.'}), 409
