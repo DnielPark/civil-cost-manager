@@ -139,15 +139,15 @@ def migrate_json_to_unit_price():
             
             # 금액 필드 처리
             재료비 = item.get('재료비', 0) or 0
-            노묘비 = item.get('노묘비', 0) or item.get('단가', 0) or 0
+            노무비 = item.get('노무비', 0) or item.get('단가', 0) or 0
             경비 = item.get('경비', 0) or 0
             합계 = item.get('합계', 0) or item.get('단가', 0) or 0
             비고 = item.get('비고', '')
             
             cursor.execute(f"""
-                INSERT INTO {table_name} (품명, 규격, 단위, 재료비, 노묘비, 경비, 합계, 비고)
+                INSERT INTO {table_name} (품명, 규격, 단위, 재료비, 노무비, 경비, 합계, 비고)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (품명, 규격, 단위, 재료비, 노묘비, 경비, 합계, 비고))
+            """, (품명, 규격, 단위, 재료비, 노무비, 경비, 합계, 비고))
         
         print(f"✅ {len(data)}개 항목 마이그레이션 완료")
     
