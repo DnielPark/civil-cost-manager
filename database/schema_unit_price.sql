@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS 표준시장단가 (
 );
 
 -- ========================================
--- 3단계: 관급자재 3종 (검수일자 포함)
+-- 3단계: 관급자재 3종 (검수일자 + 계약 추적)
 -- ========================================
 
 -- 7. 자재단가_관급 (발주처 제공 자재)
@@ -126,25 +126,9 @@ CREATE TABLE IF NOT EXISTS 자재단가_관급 (
     품명 TEXT NOT NULL,
     규격 TEXT,
     단위 TEXT NOT NULL,
-    자재대 REAL DEFAULT 0,
-    수수료 REAL DEFAULT 0,
-    울반비 REAL DEFAULT 0,
-    합계 REAL NOT NULL,
-    검수일자 DATE, -- ⭐ 필수: 동일 품명/규격도 검수일자별 별도 단가
-    비고 TEXT,
-    생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 8. 관급수수료 (관급 자재 관리비)
-CREATE TABLE IF NOT EXISTS 관급수수료 (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    품명 TEXT NOT NULL,
-    규격 TEXT,
-    단위 TEXT NOT NULL,
-    자재대 REAL DEFAULT 0,
-    수수료 REAL DEFAULT 0,
-    울반비 REAL DEFAULT 0,
+    재료비 REAL DEFAULT 0,
+    노묵비 REAL DEFAULT 0,
+    경비 REAL DEFAULT 0,
     합계 REAL NOT NULL,
     검수일자 DATE,
     비고 TEXT,
@@ -152,39 +136,60 @@ CREATE TABLE IF NOT EXISTS 관급수수료 (
     수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 9. 관급울반비 (관급 자재 운송비)
+-- 8. 관급수수료 (조달청 발주 계약별)
+CREATE TABLE IF NOT EXISTS 관급수수료 (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    품명 TEXT NOT NULL,
+    계약번호 TEXT NOT NULL,
+    단위 TEXT NOT NULL,
+    경비 REAL NOT NULL,
+    합계 REAL NOT NULL,
+    계약일자 DATE,
+    변경차수 INTEGER DEFAULT 0,
+    비고 TEXT,
+    생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. 관급울반비 (극히 드문 특수 케이스)
 CREATE TABLE IF NOT EXISTS 관급울반비 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     품명 TEXT NOT NULL,
     규격 TEXT,
     단위 TEXT NOT NULL,
-    자재대 REAL DEFAULT 0,
-    수수료 REAL DEFAULT 0,
-    울반비 REAL DEFAULT 0,
+    경비 REAL NOT NULL,
     합계 REAL NOT NULL,
-    검수일자 DATE,
+    발생일자 DATE,
     비고 TEXT,
     생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ========================================
--- 4단계: 실정보고단가 (차수 없음!)
+-- 4단계: 실정보고단가 (추적 라벨 시스템)
 -- ========================================
 
 CREATE TABLE IF NOT EXISTS 실정보고단가 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     품명 TEXT NOT NULL,
-    규격 TEXT NOT NULL, -- "기계90%+인력10% (1차실정)" 같은 구분자 포함
+    규격 TEXT NOT NULL,
     단위 TEXT,
     재료비 REAL DEFAULT 0,
     노묵비 REAL DEFAULT 0,
     경비 REAL DEFAULT 0,
     합계 REAL NOT NULL,
+    
+    -- 추적 라벨 (둘 중 하나는 필수)
+    추적라벨 TEXT,
+    승인공문번호 TEXT,
+    
+    접수일자 DATE,
     증감사유 TEXT,
     보고일자 DATE,
     비고 TEXT,
-    생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CHECK (추적라벨 IS NOT NULL OR 승인공문번호 IS NOT NULL)
 );
 
 -- ========================================
@@ -203,12 +208,20 @@ CREATE INDEX IF NOT EXISTS idx_노임단가_품명 ON 노임단가(품명);
 CREATE INDEX IF NOT EXISTS idx_표준시장단가_품명 ON 표준시장단가(품명);
 CREATE INDEX IF NOT EXISTS idx_표준시장단가_코드 ON 표준시장단가(코드);
 
--- 관급자재 인덱스
+-- 자재단가_관급
 CREATE INDEX IF NOT EXISTS idx_자재단가_관급_품명 ON 자재단가_관급(품명);
 CREATE INDEX IF NOT EXISTS idx_자재단가_관급_검수일자 ON 자재단가_관급(검수일자);
+
+-- 관급수수료 (계약 추적)
 CREATE INDEX IF NOT EXISTS idx_관급수수료_품명 ON 관급수수료(품명);
+CREATE INDEX IF NOT EXISTS idx_관급수수료_계약번호 ON 관급수수료(계약번호);
+CREATE INDEX IF NOT EXISTS idx_관급수수료_계약번호_변경차수 ON 관급수수료(계약번호, 변경차수);
+
+-- 관급울반비
 CREATE INDEX IF NOT EXISTS idx_관급울반비_품명 ON 관급울반비(품명);
 
 -- 실정보고단가 인덱스
 CREATE INDEX IF NOT EXISTS idx_실정보고단가_품명 ON 실정보고단가(품명);
-CREATE INDEX IF NOT EXISTS idx_실정보고단가_보고일자 ON 실정보고단가(보고일자);
+CREATE INDEX IF NOT EXISTS idx_실정보고단가_추적라벨 ON 실정보고단가(추적라벨);
+CREATE INDEX IF NOT EXISTS idx_실정보고단가_공문번호 ON 실정보고단가(승인공문번호);
+CREATE INDEX IF NOT EXISTS idx_실정보고단가_접수일자 ON 실정보고단가(접수일자);
