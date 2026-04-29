@@ -89,8 +89,8 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 ### ⚠️ 현재 구조 특징
 
-- **재/노/경 분리 저장:** ✅ 구현됨
-- **total 컬럼 없음:** ✅ DB에 합계 저장 안 함
+- **재/노/경 분리 저장:** ✅ 구현됨 (material_cost, labor_cost, expense_cost 별도 컬럼)
+- **total 컬럼 없음:** ✅ DB에 합계 저장 안 함 (프론트에서 JavaScript로 계산)
 - **code 컬럼 없음:** ❌ 미구현 (추가 권장)
 - **합계 계산:** UI(JavaScript)에서 처리
 
@@ -102,10 +102,13 @@ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 # 1. 의존성 설치
 pip install -r requirements.txt
 
-# 2. 서버 실행
+# 2. 서버 실행 (방법 1: 직접 실행)
 python run.py
 
-# 3. 브라우저 접속
+# 3. 서버 실행 (방법 2: 개발 스크립트)
+# ./cost-manager-dev.sh  # 로컬 개발용 스크립트 (준비중)
+
+# 4. 브라우저 접속
 http://localhost:8080
 ```
 
@@ -161,8 +164,9 @@ http://localhost:8080
 
 ### 🚧 미구현 기능 (예정)
 
-- [ ] 엑셀 업로드 (UI 버튼만 존재)
-- [ ] 엑셀 다운로드 (UI 버튼만 존재)
+- [x] 엑셀 파일 파싱 (완료 - `excel_parser.py` 구현됨)
+- [ ] 엑셀 업로드 UI 연결 (백엔드 준비됨, 프론트 연결 필요)
+- [ ] 엑셀 다운로드 기능
 - [ ] 단가 수정/삭제
 - [ ] 물량 입력 및 공사비 계산
 - [ ] 단가 코드(code) 컬럼 관리
@@ -186,6 +190,35 @@ http://localhost:8080
 2. **엑셀 다운로드:** `=SUM()` 수식 포함 엑셀 생성
 3. **단가 버전 관리:** 연도별 단가 이력 관리
 4. **물량 연동:** 단가 × 물량 = 금액 계산
+
+---
+
+## 📐 단가 체계 구조
+
+### 정상 흐름 (설계 단계)
+
+```
+물가정보지 → 품셈/시장/견적 → 일위대가 → 내역단가 (최종)
+```
+
+### 변경 흐름 (설계 변경 시)
+
+```
+... → 실정보고 단가 (별도 관리)
+```
+
+### 출처 추적 메커니즘
+
+`unit_cost_final` 테이블의 `cost_source` + `source_id` 컬럼으로 단가 출처 추적:
+
+| cost_source | 설명 | 예시 |
+|-------------|------|------|
+| `standard` | 품셈단가 참조 | 품셈단가 ID |
+| `composite` | 일위대가 참조 | 일위대가 ID |
+| `market` | 표준시장단가 참조 | 시장단가 ID |
+| `quote` | 견적단가 참조 | 견적단가 ID |
+| `field_report` | 실정보고 참조 | 실정보고 ID |
+| `price_info` | 물가정보지 참조 | 물가정보지 ID |
 
 ---
 
