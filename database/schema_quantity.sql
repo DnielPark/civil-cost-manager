@@ -34,7 +34,11 @@ CREATE TABLE IF NOT EXISTS 수량내역 (
 CREATE TABLE IF NOT EXISTS 수량이력 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     수량내역_id INTEGER NOT NULL,
-    차수 INTEGER NOT NULL, -- 0=당초, 1=1차실정, 2=2차실정...
+    
+    -- ⭐ 차수별 버전 관리
+    차수 INTEGER NOT NULL, -- 0=당초, 1=1차, 2=2차...
+    회차 INTEGER NOT NULL, -- 1=1회, 2=2회...
+    버전 TEXT NOT NULL, -- 'v1', 'v2', 'Final'
     
     수량 REAL NOT NULL,
     변경사유 TEXT,
@@ -62,7 +66,9 @@ CREATE INDEX IF NOT EXISTS idx_세부공종 ON 수량내역(세부공종);
 
 -- 수량이력 조회 최적화 (핵심!)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_수량이력_조회 
-ON 수량이력(수량내역_id, 차수);
+ON 수량이력(수량내역_id, 차수, 회차, 버전);
 
--- 차수별 조회
+-- 개별 필터용
 CREATE INDEX IF NOT EXISTS idx_차수 ON 수량이력(차수);
+CREATE INDEX IF NOT EXISTS idx_회차 ON 수량이력(회차);
+CREATE INDEX IF NOT EXISTS idx_버전 ON 수량이력(버전);
