@@ -33,7 +33,7 @@ def init_unit_price_db():
         with open(SCHEMA_UNIT_PRICE, 'r', encoding='utf-8') as f:
             schema_sql = f.read()
         cursor.executescript(schema_sql)
-        print("✅ 단가DB 스키마 적용 완료 (12개 테이블)")
+        print("✅ 단가DB 스키마 적용 완료 (11개 테이블)")
     else:
         print(f"❌ 스키마 파일 없음: {SCHEMA_UNIT_PRICE}")
         return False
