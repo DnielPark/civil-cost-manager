@@ -122,8 +122,8 @@ CREATE TABLE IF NOT EXISTS 관급수수료 (
     수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8. 관급울반비 (관급 자재 운송비)
-CREATE TABLE IF NOT EXISTS 관급울반비 (
+-- 8. TC목록 (관급 자재 운송비)
+CREATE TABLE IF NOT EXISTS TC목록 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     품명 TEXT NOT NULL,
     규격 TEXT,
@@ -195,7 +195,7 @@ CREATE INDEX IF NOT EXISTS idx_견적단가_품명 ON 견적단가(품명);
 CREATE INDEX IF NOT EXISTS idx_자재단가_사급_품명 ON 자재단가_사급(품명);
 CREATE INDEX IF NOT EXISTS idx_자재단가_관급_품명 ON 자재단가_관급(품명);
 CREATE INDEX IF NOT EXISTS idx_관급수수료_품명 ON 관급수수료(품명);
-CREATE INDEX IF NOT EXISTS idx_관급울반비_품명 ON 관급울반비(품명);
+CREATE INDEX IF NOT EXISTS idx_TC목록_품명 ON TC목록(품명);
 CREATE INDEX IF NOT EXISTS idx_경비단가_품명 ON 경비단가(품명);
 CREATE INDEX IF NOT EXISTS idx_노임단가_품명 ON 노임단가(품명);
 CREATE INDEX IF NOT EXISTS idx_실정보고단가_품명 ON 실정보고단가(품명);
