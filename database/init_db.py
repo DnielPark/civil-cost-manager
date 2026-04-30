@@ -167,7 +167,7 @@ def verify_quantity_tables():
 
 
 def migrate_json_to_unit_price(project_id, docs_dir):
-    """docs/*.json 파일을 단가DB로 마이그레이션 (UPSERT 지원)"""
+    """docs/*.json 파일을 단가DB로 마이그레이션 (UPSERT 지원, 테이블별 동적 컬럼)"""
     conn = sqlite3.connect(UNIT_PRICE_DB)
     cursor = conn.cursor()
     
@@ -186,6 +186,21 @@ def migrate_json_to_unit_price(project_id, docs_dir):
         '품셈단가_data.json': '품셈단가',
     }
     
+    # 테이블별 컬럼 매핑: JSON 키 → DB 컬럼명
+    column_map = {
+        '견적단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '비고'],
+        '경비단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '비고'],
+        '관급수수료': ['코드', '품명', '규격', '단위', '수량', 'material_cost', 'labor_cost', 'expense_cost', '계약번호', '비고'],
+        'gov_tc': ['코드', '품명', '규격', '단위', '수량', 'material_cost', 'labor_cost', 'expense_cost', '계약번호', '비고'],
+        '노임단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '비고'],
+        '실정보고단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '버전', '실정보고걸명', '비고'],
+        '일위대가': ['코드', '품명', '규격', '단위', '단위수량', 'material_cost', 'labor_cost', 'expense_cost', '구성내역', '비고'],
+        '자재단가_관급': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '검수일자', '비고'],
+        '자재단가_사급': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '비고'],
+        '표준시장단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', 'labor_ratio', '적용일자', '비고'],
+        '품셈단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '비고'],
+    }
+    
     for json_file, table_name in migration_map.items():
         json_path = docs_dir / json_file
         if not json_path.exists():
@@ -197,34 +212,41 @@ def migrate_json_to_unit_price(project_id, docs_dir):
         
         print(f"📥 {json_file} → {table_name} 마이그레이션 중...")
         
+        # 해당 테이블의 컬럼 목록
+        columns = column_map.get(table_name, [])
+        if not columns:
+            print(f"⚠️ 컬럼 매핑 없음: {table_name}")
+            continue
+        
         for item in data:
             # 주석 블록 스킵
             if '_코드생성규칙' in item or '_버전관리규칙' in item:
                 continue
             
-            code = item.get('코드', '')
-            품명 = item.get('품명', item.get('명칭', ''))
-            규격 = item.get('규격', '')
-            단위 = item.get('단위', '')
+            # 컬럼 값 추출
+            values = []
+            for col in columns:
+                val = item.get(col, '')
+                # 숫자 필드 처리
+                if col in ['material_cost', 'labor_cost', 'expense_cost', '수량', '단위수량', 'labor_ratio']:
+                    val = val if val else 0
+                values.append(val)
             
-            # 금액 필드 처리
-            재료비 = item.get('재료비', 0) or 0
-            labor_cost = item.get('labor_cost', 0) or item.get('단가', 0) or 0
-            경비 = item.get('경비', 0) or 0
-            비고 = item.get('비고', '')
+            # INSERT 컬럼: project_id + code + 나머지 컬럼
+            db_columns = ['project_id', 'code'] + [c for c in columns if c != '코드']
+            placeholders = ', '.join(['?' for _ in db_columns])
+            column_names = ', '.join(db_columns)
+            
+            # UPSERT SET 절
+            update_cols = [c for c in db_columns if c not in ['project_id', 'code']]
+            set_clause = ', '.join([f"{c}=excluded.{c}" for c in update_cols])
             
             cursor.execute(f"""
-                INSERT INTO {table_name} (project_id, code, 품명, 규격, 단위, 재료비, labor_cost, 경비, 비고)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO {table_name} ({column_names})
+                VALUES ({placeholders})
                 ON CONFLICT(project_id, code) DO UPDATE SET
-                    품명=excluded.품명,
-                    규격=excluded.규격,
-                    단위=excluded.단위,
-                    재료비=excluded.재료비,
-                    labor_cost=excluded.labor_cost,
-                    경비=excluded.경비,
-                    비고=excluded.비고
-            """, (project_id, code, 품명, 규격, 단위, 재료비, labor_cost, 경비, 비고))
+                    {set_clause}
+            """, [project_id] + values)
         
         print(f"✅ {len(data)}개 항목 마이그레이션 완료")
     
