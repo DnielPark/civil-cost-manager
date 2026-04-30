@@ -151,8 +151,8 @@ CREATE TABLE IF NOT EXISTS 관급수수료 (
     수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 9. TC목록 (극히 드문 특수 케이스)
-CREATE TABLE IF NOT EXISTS TC목록 (
+-- 9. 관급울반비 (극히 드문 특수 케이스)
+CREATE TABLE IF NOT EXISTS 관급울반비 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     품명 TEXT NOT NULL,
     규격 TEXT,
@@ -216,8 +216,8 @@ CREATE INDEX IF NOT EXISTS idx_관급수수료_품명 ON 관급수수료(품명)
 CREATE INDEX IF NOT EXISTS idx_관급수수료_계약번호 ON 관급수수료(계약번호);
 CREATE INDEX IF NOT EXISTS idx_관급수수료_계약번호_변경차수 ON 관급수수료(계약번호, 변경차수);
 
--- TC목록
-CREATE INDEX IF NOT EXISTS idx_TC목록_품명 ON TC목록(품명);
+-- 관급울반비
+CREATE INDEX IF NOT EXISTS idx_관급울반비_품명 ON 관급울반비(품명);
 
 -- 실정보고단가 인덱스
 CREATE INDEX IF NOT EXISTS idx_실정보고단가_품명 ON 실정보고단가(품명);
