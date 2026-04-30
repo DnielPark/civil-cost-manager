@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 단가/수량 데이터베이스 초기화 스크립트
-- unit_price.db: 12개 단가 테이블
+- unit_price.db: 11개 단가 테이블
 - quantity.db: 수량내역 + 수량이력 (차수 관리)
 """
 
@@ -78,8 +78,8 @@ def verify_unit_price_tables():
     print("\n📊 단가DB 테이블 목록:")
     expected_tables = [
         '일위대가', '품셈단가', '표준시장단가', '견적단가',
-        '자재단가_사급', '자재단가_관급', '관급수수료', '관급울반비',
-        '경비단가', '노임단가', '실정보고단가'
+        '자재단가_사급', '자재단가_관급', '관급수수료',
+        '경비단가', '노임단가', '실정보고단가', 'gov_tc'
     ]
     
     for table in expected_tables:
@@ -109,8 +109,8 @@ def verify_quantity_tables():
     conn.close()
 
 
-def migrate_json_to_unit_price():
-    """docs/*.json 파일을 단가DB로 마이그레이션"""
+def migrate_json_to_unit_price(project_id=1):
+    """docs/*.json 파일을 단가DB로 마이그레이션 (UPSERT 지원)"""
     conn = sqlite3.connect(UNIT_PRICE_DB)
     cursor = conn.cursor()
     
@@ -141,21 +141,33 @@ def migrate_json_to_unit_price():
         print(f"📥 {json_file} → {table_name} 마이그레이션 중...")
         
         for item in data:
-            품명 = item.get('명칭', '')
+            # 주석 블록 스킵
+            if '_코드생성규칙' in item or '_버전관리규칙' in item:
+                continue
+            
+            code = item.get('코드', '')
+            품명 = item.get('품명', item.get('명칭', ''))
             규격 = item.get('규격', '')
             단위 = item.get('단위', '')
             
             # 금액 필드 처리
             재료비 = item.get('재료비', 0) or 0
-            노무비 = item.get('노무비', 0) or item.get('단가', 0) or 0
+            노묘비 = item.get('노묘비', 0) or item.get('단가', 0) or 0
             경비 = item.get('경비', 0) or 0
-            합계 = item.get('합계', 0) or item.get('단가', 0) or 0
             비고 = item.get('비고', '')
             
             cursor.execute(f"""
-                INSERT INTO {table_name} (품명, 규격, 단위, 재료비, 노무비, 경비, 합계, 비고)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (품명, 규격, 단위, 재료비, 노무비, 경비, 합계, 비고))
+                INSERT INTO {table_name} (project_id, code, 품명, 규격, 단위, 재료비, 노묘비, 경비, 비고)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(project_id, code) DO UPDATE SET
+                    품명=excluded.품명,
+                    규격=excluded.규격,
+                    단위=excluded.단위,
+                    재료비=excluded.재료비,
+                    노묘비=excluded.노묘비,
+                    경비=excluded.경비,
+                    비고=excluded.비고
+            """, (project_id, code, 품명, 규격, 단위, 재료비, 노묘비, 경비, 비고))
         
         print(f"✅ {len(data)}개 항목 마이그레이션 완료")
     
