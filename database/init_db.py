@@ -1,25 +1,82 @@
 #!/usr/bin/env python3
 """
 단가/수량 데이터베이스 초기화 스크립트
-- unit_price.db: 11개 단가 테이블
+- unit_price.db: 11개 단가 테이블 + projects 테이블
 - quantity.db: 수량내역 + 수량이력 (차수 관리)
+
+사용법:
+  python3 database/init_db.py --project 샘플_1공구
+  python3 database/init_db.py  # 프로젝트 목록 출력 후 선택
 """
 
 import sqlite3
 import json
 import os
+import sys
+import argparse
 from pathlib import Path
 
 # 프로젝트 루트 디렉토리
 BASE_DIR = Path(__file__).parent.parent
 DB_DIR = BASE_DIR / 'database'
-DOCS_DIR = BASE_DIR / 'docs'
+DOCS_BASE_DIR = BASE_DIR / 'docs'
 
 UNIT_PRICE_DB = DB_DIR / 'unit_price.db'
 QUANTITY_DB = DB_DIR / 'quantity.db'
 
 SCHEMA_UNIT_PRICE = DB_DIR / 'schema_unit_price.sql'
 SCHEMA_QUANTITY = DB_DIR / 'schema_quantity.sql'
+
+
+def init_projects_table():
+    """projects 테이블 생성 (없으면)"""
+    conn = sqlite3.connect(UNIT_PRICE_DB)
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS projects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    conn.commit()
+    conn.close()
+    print("✅ projects 테이블 준비 완료")
+
+
+def get_or_create_project(project_name):
+    """프로젝트 등록 또는 기존 ID 반환"""
+    conn = sqlite3.connect(UNIT_PRICE_DB)
+    cursor = conn.cursor()
+    
+    # 기존 프로젝트 확인
+    cursor.execute("SELECT id FROM projects WHERE name = ?", (project_name,))
+    result = cursor.fetchone()
+    
+    if result:
+        project_id = result[0]
+        print(f"📁 기존 프로젝트 사용: {project_name} (ID: {project_id})")
+    else:
+        # 새 프로젝트 등록
+        cursor.execute("INSERT INTO projects (name) VALUES (?)", (project_name,))
+        project_id = cursor.lastrowid
+        print(f"📁 새 프로젝트 등록: {project_name} (ID: {project_id})")
+    
+    conn.commit()
+    conn.close()
+    return project_id
+
+
+def list_projects():
+    """docs/ 하위 폴터 목록 출력"""
+    if not DOCS_BASE_DIR.exists():
+        print("❌ docs/ 폴터가 없습니다.")
+        return []
+    
+    projects = [d.name for d in DOCS_BASE_DIR.iterdir() if d.is_dir()]
+    return projects
 
 
 def init_unit_price_db():
@@ -109,7 +166,7 @@ def verify_quantity_tables():
     conn.close()
 
 
-def migrate_json_to_unit_price(project_id=1):
+def migrate_json_to_unit_price(project_id, docs_dir):
     """docs/*.json 파일을 단가DB로 마이그레이션 (UPSERT 지원)"""
     conn = sqlite3.connect(UNIT_PRICE_DB)
     cursor = conn.cursor()
@@ -130,7 +187,7 @@ def migrate_json_to_unit_price(project_id=1):
     }
     
     for json_file, table_name in migration_map.items():
-        json_path = DOCS_DIR / json_file
+        json_path = docs_dir / json_file
         if not json_path.exists():
             print(f"⚠️ 파일 없음: {json_file}")
             continue
@@ -178,6 +235,10 @@ def migrate_json_to_unit_price(project_id=1):
 
 def main():
     """메인 실행 함수"""
+    parser = argparse.ArgumentParser(description='단가/수량 데이터베이스 초기화')
+    parser.add_argument('--project', type=str, help='마이그레이션할 프로젝트 폴더명 (예: 샘플_1공구)')
+    args = parser.parse_args()
+    
     print("=" * 60)
     print("단가/수량 데이터베이스 초기화")
     print("=" * 60)
@@ -190,18 +251,45 @@ def main():
     if init_quantity_db():
         verify_quantity_tables()
     
-    # Step 3: 마이그레이션 (선택)
-    print("\n📁 마이그레이션할 JSON 파일:")
-    json_files = list(DOCS_DIR.glob('*.json'))
-    for f in json_files:
-        print(f"  - {f.name}")
+    # Step 3: projects 테이블 준비
+    init_projects_table()
     
-    if json_files:
-        response = input("\n마이그레이션을 실행하시겠습니까? (y/n): ")
-        if response.lower() == 'y':
-            migrate_json_to_unit_price()
+    # Step 4: 프로젝트 선택 및 마이그레이션
+    if args.project:
+        project_name = args.project
+        docs_dir = DOCS_BASE_DIR / project_name
+        if not docs_dir.exists():
+            print(f"\n❌ 프로젝트 폴더 없음: {docs_dir}")
+            return
     else:
-        print("  마이그레이션할 JSON 파일이 없습니다.")
+        # 프로젝트 목록 출력
+        projects = list_projects()
+        if not projects:
+            print("\n⚠️ 마이그레이션할 프로젝트가 없습니다.")
+            return
+        
+        print("\n📁 사용 가능한 프로젝트:")
+        for i, name in enumerate(projects, 1):
+            print(f"  {i}. {name}")
+        
+        try:
+            choice = input("\n마이그레이션할 프로젝트 번호를 선택하세요: ")
+            idx = int(choice) - 1
+            if idx < 0 or idx >= len(projects):
+                print("❌ 잘못된 선택입니다.")
+                return
+            project_name = projects[idx]
+            docs_dir = DOCS_BASE_DIR / project_name
+        except (ValueError, KeyboardInterrupt):
+            print("\n❌ 취소되었습니다.")
+            return
+    
+    # 프로젝트 등록 및 ID 발급
+    project_id = get_or_create_project(project_name)
+    
+    # 마이그레이션 실행
+    print(f"\n📂 프로젝트 폴더: {docs_dir}")
+    migrate_json_to_unit_price(project_id, docs_dir)
     
     print("\n" + "=" * 60)
     print("초기화 완료!")
