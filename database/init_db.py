@@ -152,22 +152,22 @@ def migrate_json_to_unit_price(project_id=1):
             
             # 금액 필드 처리
             재료비 = item.get('재료비', 0) or 0
-            노묘비 = item.get('노묘비', 0) or item.get('단가', 0) or 0
+            labor_cost = item.get('labor_cost', 0) or item.get('단가', 0) or 0
             경비 = item.get('경비', 0) or 0
             비고 = item.get('비고', '')
             
             cursor.execute(f"""
-                INSERT INTO {table_name} (project_id, code, 품명, 규격, 단위, 재료비, 노묘비, 경비, 비고)
+                INSERT INTO {table_name} (project_id, code, 품명, 규격, 단위, 재료비, labor_cost, 경비, 비고)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(project_id, code) DO UPDATE SET
                     품명=excluded.품명,
                     규격=excluded.규격,
                     단위=excluded.단위,
                     재료비=excluded.재료비,
-                    노묘비=excluded.노묘비,
+                    labor_cost=excluded.labor_cost,
                     경비=excluded.경비,
                     비고=excluded.비고
-            """, (project_id, code, 품명, 규격, 단위, 재료비, 노묘비, 경비, 비고))
+            """, (project_id, code, 품명, 규격, 단위, 재료비, labor_cost, 경비, 비고))
         
         print(f"✅ {len(data)}개 항목 마이그레이션 완료")
     
