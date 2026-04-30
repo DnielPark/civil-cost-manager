@@ -116,9 +116,17 @@ def migrate_json_to_unit_price():
     
     # 마이그레이션 매핑: JSON 파일명 → 테이블명
     migration_map = {
-        '노임.json': '노임단가',
-        '경비.json': '경비단가',
-        '자재.json': '자재단가_사급',
+        '견적단가_data.json': '견적단가',
+        '경비단가_data.json': '경비단가',
+        '관급수수료_data.json': '관급수수료',
+        'gov_tc_data.json': 'gov_tc',
+        '노임단가_data.json': '노임단가',
+        '실정보고단가_data.json': '실정보고단가',
+        '일위대가_data.json': '일위대가',
+        '자재단가_관급_data.json': '자재단가_관급',
+        '자재단가_사급_data.json': '자재단가_사급',
+        '표준시장단가_data.json': '표준시장단가',
+        '품셈단가_data.json': '품셈단가',
     }
     
     for json_file, table_name in migration_map.items():
