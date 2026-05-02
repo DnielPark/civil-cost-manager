@@ -1,9 +1,7 @@
 import sys
 sys.path.insert(0, '.')
 from app import app
-from config import Config
+from config import DevelopmentConfig
 
 if __name__ == '__main__':
-    import os
-    os.environ['WERKZEUG_RUN_MAIN'] = 'true'
-    app.run(host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
+    app.run(host=DevelopmentConfig.HOST, port=DevelopmentConfig.PORT, debug=DevelopmentConfig.DEBUG)

@@ -61,6 +61,33 @@
         .toolbar button:hover { background: #2980b9; }
         .toolbar .btn-green { background: #4CAF50; }
         .toolbar .btn-green:hover { background: #45a049; }
+        .edit-input {
+            width: 100%;
+            padding: 4px;
+            border: 1px solid #3498db;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+        .edit-input.text-left { text-align: left !important; }
+        .edit-input.text-right { text-align: right !important; }
+        .edit-actions {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+        }
+        .edit-actions button {
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .btn-save { background: #4CAF50; color: white; }
+        .btn-save:hover { background: #45a049; }
+        .btn-cancel { background: #e74c3c; color: white; }
+        .btn-cancel:hover { background: #c0392b; }
+        .editing { background-color: #fff3cd !important; }
     </style>
 </head>
 <body>
@@ -206,10 +233,129 @@
                 const cells = cols.map(c => {
                     const val = c.key === 'idx' ? idx : item[c.key];
                     const rendered = c.render ? c.render(val, idx, item) : (val ?? '');
-                    return `<td${c.class ? ' class="' + c.class + '"' : ''}>${rendered}</td>`;
+                    return `<td class="cell-${c.key}${c.class ? ' ' + c.class : ''}" data-key="${c.key}">${rendered}</td>`;
                 }).join('');
-                return `<tr>${cells}</tr>`;
+                return `<tr data-id="${item.id}" ondblclick="startEdit(this)">${cells}</tr>`;
             }).join('');
+        }
+
+        let editingRow = null;
+        let originalData = null;
+
+        function startEdit(row) {
+            if (editingRow) return; // 이미 편집 중이면 무시
+            
+            const itemId = row.dataset.id;
+            const item = priceData.find(p => String(p.id) === itemId);
+            if (!item) return;
+
+            editingRow = row;
+            originalData = { ...item };
+
+            const cols = COLUMNS[COST_TYPE];
+            const cells = row.querySelectorAll('td');
+
+            cells.forEach((cell, idx) => {
+                const col = cols[idx];
+                if (!col || col.key === 'idx' || col.key === 'total') return; // 색인, 합계는 편집 불가
+
+                const key = col.key;
+                const value = item[key] ?? '';
+                const inputClass = col.class ? col.class : '';
+                
+                cell.innerHTML = `<input type="text" class="edit-input ${inputClass}" value="${value}" data-key="${key}">`;
+            });
+
+            // 저장/취소 버튼 추가
+            const actionCell = document.createElement('td');
+            actionCell.className = 'edit-actions';
+            actionCell.innerHTML = `
+                <button class="btn-save" onclick="saveEdit(event)">💾</button>
+                <button class="btn-cancel" onclick="cancelEdit(event)">✕</button>
+            `;
+            row.appendChild(actionCell);
+
+            row.classList.add('editing');
+        }
+
+        async function saveEdit(event) {
+            event.stopPropagation();
+            if (!editingRow) return;
+
+            const itemId = editingRow.dataset.id;
+            const inputs = editingRow.querySelectorAll('.edit-input');
+            const updates = {};
+
+            inputs.forEach(input => {
+                const key = input.dataset.key;
+                let value = input.value;
+                
+                // 숫자 필드는 숫자로 변환
+                if (['unit_quantity', 'material_cost', 'labor_cost', 'expense_cost', 'source_id'].includes(key)) {
+                    value = value === '' ? null : parseFloat(value);
+                }
+                
+                updates[key] = value;
+            });
+
+            try {
+                const res = await fetch(`/api/unit-prices/${PROJECT_ID}/${COST_TYPE}/${itemId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+
+                if (res.ok) {
+                    // 데이터 갱신
+                    const itemIndex = priceData.findIndex(p => String(p.id) === itemId);
+                    if (itemIndex !== -1) {
+                        Object.assign(priceData[itemIndex], updates);
+                    }
+                    
+                    // 행 원상복귀
+                    restoreRow(editingRow);
+                    editingRow = null;
+                    originalData = null;
+                } else {
+                    const err = await res.json();
+                    alert('저장 실패: ' + (err.error || '알 수 없는 오류'));
+                }
+            } catch (err) {
+                alert('저장 실패: ' + err.message);
+            }
+        }
+
+        function cancelEdit(event) {
+            event.stopPropagation();
+            if (!editingRow) return;
+
+            restoreRow(editingRow);
+            editingRow = null;
+            originalData = null;
+        }
+
+        function restoreRow(row) {
+            const itemId = row.dataset.id;
+            const item = priceData.find(p => String(p.id) === itemId);
+            if (!item) return;
+
+            const cols = COLUMNS[COST_TYPE];
+            const cells = row.querySelectorAll('td');
+
+            cells.forEach((cell, idx) => {
+                const col = cols[idx];
+                if (!col) return;
+
+                const val = col.key === 'idx' ? Array.from(row.parentNode.children).indexOf(row) : item[col.key];
+                const rendered = col.render ? col.render(val, Array.from(row.parentNode.children).indexOf(row), item) : (val ?? '');
+                cell.innerHTML = rendered;
+            });
+
+            // 액션 셀 제거
+            const actionCell = row.querySelector('.edit-actions');
+            if (actionCell) actionCell.remove();
+
+            row.classList.remove('editing');
         }
 
         async function loadData() {

@@ -46,6 +46,13 @@ def init_projects_table():
     print("✅ projects 테이블 준비 완료")
 
 
+def get_connection():
+    """단가DB 연결 반환 (row_factory 설정)"""
+    conn = sqlite3.connect(str(UNIT_PRICE_DB))
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def get_or_create_project(project_name):
     """프로젝트 등록 또는 기존 ID 반환"""
     conn = sqlite3.connect(UNIT_PRICE_DB)

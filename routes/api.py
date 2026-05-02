@@ -179,3 +179,65 @@ def add_unit_price(project_id, table_type):
     except sqlite3.IntegrityError:
         conn.close()
         return jsonify({'error': '동일한 공종명+규격이 이미 존재합니다.'}), 409
+
+
+# --- 단가 수정 API (PUT) ---
+
+@api_bp.route('/unit-prices/<int:project_id>/<table_type>/<int:item_id>', methods=['PUT'])
+@safe_db
+def update_unit_price(project_id, table_type, item_id):
+    """단가 수정 API"""
+    if table_type not in UNIT_TABLES:
+        return jsonify({'error': '잘못된 단가 유형입니다.'}), 400
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': '수정할 데이터가 필요합니다.'}), 400
+
+    table = UNIT_TABLES[table_type]
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # 해당 ID가 존재하는지 확인
+    cursor.execute(f'SELECT id FROM {table} WHERE id = ? AND project_id = ?', (item_id, project_id))
+    if not cursor.fetchone():
+        conn.close()
+        return jsonify({'error': '해당 단가를 찾을 수 없습니다.'}), 404
+
+    # 수정 가능한 필드 목록
+    editable_fields = [
+        'work_name', 'spec', 'unit', 'unit_quantity',
+        'material_cost', 'labor_cost', 'expense_cost', 'note'
+    ]
+
+    # 테이블별 추가 필드
+    if table_type == 'final':
+        editable_fields.extend(['cost_source', 'source_id'])
+    elif table_type == 'composite':
+        editable_fields.append('composition_detail')
+    elif table_type == 'price_info':
+        editable_fields.extend(['publisher', 'issue_date'])
+
+    # 요청에서 수정할 필드만 추출
+    updates = {}
+    for field in editable_fields:
+        if field in data:
+            updates[field] = data[field]
+
+    if not updates:
+        conn.close()
+        return jsonify({'error': '수정할 필드가 없습니다.'}), 400
+
+    # UPDATE 쿼리 생성
+    set_clause = ', '.join([f"{k} = ?" for k in updates.keys()])
+    values = list(updates.values()) + [item_id, project_id]
+
+    cursor.execute(f'''
+        UPDATE {table}
+        SET {set_clause}
+        WHERE id = ? AND project_id = ?
+    ''', values)
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': '수정 완료'}), 200
