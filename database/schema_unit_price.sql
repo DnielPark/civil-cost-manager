@@ -189,7 +189,7 @@ CREATE TABLE IF NOT EXISTS 일위대가 (
     UNIQUE(project_id, code)
 );
 
--- 11. 실정보고단가 (버전, 실정보고걸명)
+-- 11. 실정보고단가 (버전, 실정보고건명)
 CREATE TABLE IF NOT EXISTS 실정보고단가 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL,
@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS 실정보고단가 (
     labor_cost REAL DEFAULT 0,
     expense_cost REAL DEFAULT 0,
     버전 TEXT,
-    실정보고걸명 TEXT,
+    실정보고건명 TEXT,
     비고 TEXT,
     생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
