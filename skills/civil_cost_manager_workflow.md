@@ -41,6 +41,9 @@ GitHub: https://github.com/DnielPark/civil-cost-manager
 - 미르 완료 보고 확인 후 다음 단계 진행
 - 테스트 없이 push 금지
 - .env 파일 커밋 금지
+- **매 커밋마다 workflow.md 진행 상태 체크리스트 업데이트 필수**
+  - 완료된 항목: `- [ ]` → `- [x]`
+  - 새로 추가된 예정 작업은 해당 섹션에 추가
 
 ---
 
@@ -57,7 +60,7 @@ GitHub: https://github.com/DnielPark/civil-cost-manager
 
 ## 현재 진행 상태 (2026-05-05 기준)
 
-### 완료
+### ✅ 완료
 - [x] Flask 기본 구조 + SQLite 연동
 - [x] 11개 단가 테이블 스키마 설계
 - [x] 샘플 JSON 데이터 (docs/샘플_1공구/)
@@ -65,17 +68,18 @@ GitHub: https://github.com/DnielPark/civil-cost-manager
 - [x] 단가명세표 대시보드 UI
 - [x] 단가 목록 조회 + 검색
 - [x] 인셀 더블클릭 수정 기능
+- [x] 스킬 문서 3개 생성 (server_env, db_schema, workflow)
+- [x] README 구버전 내용 정리 (code 컬럼 미구현 표기 수정)
+- [x] 노임단가 단가기준 컬럼 추가
+- [x] 실정보고걸명 오타 수정 (걸명→걸명, 3개 파일)
+- [x] app.py init_database() ImportError 수정
 
-### 진행 중
-- [ ] 스키마 확정 수정 (노임단가 단가기준 추가, 실정보고걸명 오타 수정)
-- [ ] app.py init_database() 오류 수정
-
-### 예정 (v1.0)
-- [ ] routes/api.py 신규 테이블명으로 전면 수정
+### 🔜 예정 (v1.0)
+- [ ] routes/api.py 신규 테이블명으로 전면 수정 ← 다음 작업
 - [ ] 메인 페이지 UI 개편 (docs/ 폴터 스캔 + 마이그레이션 버튼)
 - [ ] 마이그레이션 실시간 로그 스트리밍
 
-### 예정 (v2.0)
+### ⏳ 예정 (v2.0)
 - [ ] 수량DB 마이그레이션 UI
 - [ ] 수량내역서 관리 페이지
 - [ ] 실정보고 패키지 출력
