@@ -25,9 +25,11 @@ def server_error(e):
     return render_template('error.html', message='서버 오류가 발생했습니다.'), 500
 
 if __name__ == '__main__':
-    # DB 초기화
-    from database.init_db import init_database
-    init_database()
+    # DB 스키마 초기화 (테이블 없으면 생성)
+    from database.init_db import init_unit_price_db, init_quantity_db, init_projects_table
+    init_unit_price_db()
+    init_quantity_db()
+    init_projects_table()
 
     app.run(
         host=app.config['HOST'],

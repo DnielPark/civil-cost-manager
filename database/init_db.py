@@ -199,7 +199,7 @@ def migrate_json_to_unit_price(project_id, docs_dir):
         '경비단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '비고'],
         '관급수수료': ['코드', '품명', '규격', '단위', '수량', 'material_cost', 'labor_cost', 'expense_cost', '계약번호', '비고'],
         'gov_tc': ['코드', '품명', '규격', '단위', '수량', 'material_cost', 'labor_cost', 'expense_cost', '계약번호', '비고'],
-        '노임단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '비고'],
+        '노임단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '단가기준', '비고'],
         '실정보고단가': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '버전', '실정보고걸명', '비고'],
         '일위대가': ['코드', '품명', '규격', '단위', '단위수량', 'material_cost', 'labor_cost', 'expense_cost', '구성내역', '비고'],
         '자재단가_관급': ['코드', '품명', '규격', '단위', 'material_cost', 'labor_cost', 'expense_cost', '검수일자', '비고'],

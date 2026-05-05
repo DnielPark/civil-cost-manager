@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS 노임단가 (
     material_cost REAL DEFAULT 0,
     labor_cost REAL DEFAULT 0,
     expense_cost REAL DEFAULT 0,
+    단가기준 TEXT, -- 예: "2024년 상반기", "2025년 하반기"
     비고 TEXT,
     생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -203,6 +204,7 @@ CREATE TABLE IF NOT EXISTS 실정보고단가 (
     실정보고걸명 TEXT,
     비고 TEXT,
     생성일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    수정일시 TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(project_id, code)
 );
 

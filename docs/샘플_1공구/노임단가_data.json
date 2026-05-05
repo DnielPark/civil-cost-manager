@@ -7,6 +7,7 @@
   "material_cost": 0,
   "labor_cost": 150000,
   "expense_cost": 0,
+  "단가기준": "2024년 상반기",
   "비고": "2024년 기준"
  },
  {
@@ -17,6 +18,7 @@
   "material_cost": 0,
   "labor_cost": 195000,
   "expense_cost": 0,
+  "단가기준": "2024년 상반기",
   "비고": "야간할증 30%"
  },
  {
@@ -27,6 +29,7 @@
   "material_cost": 0,
   "labor_cost": 180000,
   "expense_cost": 0,
+  "단가기준": "2024년 상반기",
   "비고": ""
  },
  {
